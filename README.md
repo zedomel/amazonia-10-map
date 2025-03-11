@@ -1,2 +1,3 @@
-# amazonia-10-map
+# Amazonia+10 Map
+
 Map with projects locations of study
