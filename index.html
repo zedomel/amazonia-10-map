@@ -60,7 +60,7 @@
 							parseFloat(loc[1].replace(/[^0-9\.-]/g,"")),
 							parseFloat(loc[2].replace(/[^0-9\.-]/g,"")),
 						]).addTo(map)
-						.bindPopup("<strong>" + row.data.title + "</strong><p>Pesquisador responsável: " + row.data.researcher + '</p><p>Localidade: ' + loc[0] + '</p>');
+						.bindPopup("<strong>" + row.data.title + "</strong><p>Pesquisador responsável: " + row.data.researcher + '</p><p>' + loc[0] + '</p>');
 					})
 				}
 			})
