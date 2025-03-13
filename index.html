@@ -20,6 +20,27 @@
   body { margin:0; padding:0; }
   #map { position: absolute; top:0; bottom:0; right:0; left:0; }
   #map-title { position: relative; margin-top: 10px; margin-left: 50px; float: left; background: white; border: 2px solid rgba(0,0,0,0.2); padding: 6px 8px; font-family: Helvetica; font-weight: bold; font-size: 24px; z-index: 800; }
+  #loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    display: none;
+  }
+
+  /* Keyframes for the spinner animation */
+  @keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+
   </style>
 </head>
 <body>
@@ -27,9 +48,57 @@
   <!-- Display the map and title with HTML division tags  -->
   <div id="map-title">Amazonia+10 - Locais de estudo</div>
   <div id="map"></div>
+  <div id="loader"></div>
 
   <!-- Create the interactive map content with JavaScript (.js) -->
   <script>
+
+    function b64DecodeUnicode(str) {
+      // Going backwards: from bytestream, to percent-encoding, to original string.
+      return decodeURIComponent(atob(str).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+    }
+
+    function getData() {
+      document.getElementById('loader').style.display = 'block';
+      const header = ['date', 'title', 'locations', 'ip', 'researcher', 'project_number', 'submission_id'];
+      fetch(`https://api.allorigins.win/get?charset=utf-8&url=${encodeURIComponent('https://docs.google.com/spreadsheets/d/18UJG2qIZHCQzdOX162CAJuZKdRTjSfiF-L81180PIuw/export?format=csv')}`)
+      .then(function(response) {
+        return response.json();
+      }).then(function(text) {
+        const base64Content = text.contents.split(',')[1];
+        const decodedData = b64DecodeUnicode(base64Content);
+        Papa.parse(decodedData, {
+          header: true,
+          transformHeader: function(h,i) {
+            return header[i];
+          },
+          step: function(row) {
+            Papa.parse(row.data.locations, {
+              complete: function(locs) {
+                locs.data.forEach(function(loc) {
+                  L.marker([
+                    parseFloat(loc[1].replace(/[^0-9\.-]/g,"")),
+                    parseFloat(loc[2].replace(/[^0-9\.-]/g,"")),
+                  ]).addTo(map)
+                  .bindPopup("<strong>" + row.data.title + "</strong><p>Pesquisador responsável: " + row.data.researcher + '</p><p>' + loc[0] + '</p>');
+                })
+              }
+            })
+          }
+        })
+        document.getElementById('loader').style.display = 'none';
+      })
+      .catch(function(err) {
+        console.log(err);
+        setTimeout(function() {
+          clearTimeout();
+          getData();
+        }, 3000)
+
+      });
+    }
 
   /* Set up the initial map center and zoom level */
   var map = L.map('map', {
@@ -43,29 +112,8 @@
 	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 	}).addTo(map);
 
+  getData();
 
-	const header = ['date', 'title', 'locations', 'ip', 'researcher', 'project_number', 'submission_id'];
-
-	Papa.parse("https://cors-anywhere.herokuapp.com/https://docs.google.com/spreadsheets/d/18UJG2qIZHCQzdOX162CAJuZKdRTjSfiF-L81180PIuw/export?format=csv", {
-		header: true,
-		download: true,
-		transformHeader: function(h,i) {
-			return header[i];
-		},
-		step: function(row) {
-			Papa.parse(row.data.locations, {
-				complete: function(locs) {
-					locs.data.forEach(function(loc) {
-						L.marker([
-							parseFloat(loc[1].replace(/[^0-9\.-]/g,"")),
-							parseFloat(loc[2].replace(/[^0-9\.-]/g,"")),
-						]).addTo(map)
-						.bindPopup("<strong>" + row.data.title + "</strong><p>Pesquisador responsável: " + row.data.researcher + '</p><p>' + loc[0] + '</p>');
-					})
-				}
-			})
-		}
-	});
 
   </script>
 </body>
