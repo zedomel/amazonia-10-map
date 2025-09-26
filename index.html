@@ -72,6 +72,24 @@
       return latLng;
     }
 
+	// Function to generate a color based on the title string
+    function getColorFromTitle(title) {
+      // Simple hash function to convert string to a number
+      let hash = 0;
+      for (let i = 0; i < title.length; i++) {
+        hash = title.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      
+      // Convert hash to a hex color
+      let color = '#';
+      for (let i = 0; i < 3; i++) {
+        const value = (hash >> (i * 8)) & 0xFF;
+        color += ('00' + value.toString(16)).substr(-2);
+      }
+      
+      return color;
+    }
+
     function getData() {
       document.getElementById('loader').style.display = 'block';
       const header = ['date', 'title', 'locations', 'ip', 'researcher', 'project_number', 'submission_id'];
@@ -96,10 +114,20 @@
                   try {
                     const latLng = getLatLng(loc);
                     if (latLng.length == 2) {
+					  const title = row.data.title;
+					  const color = getColorFromTitle(title);	
+					  const coloredIcon = new L.Icon({
+                         iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+                         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                         iconSize: [25, 41],
+                         iconAnchor: [12, 41],
+                         popupAnchor: [1, -34],
+                         shadowSize: [41, 41]
+                      });
                       L.marker([
                         parseFloat(latLng[0]),
                         parseFloat(latLng[1]),
-                      ]).addTo(map)
+                      ], {icon: coleredIcon).addTo(map)
                       .bindPopup("<strong>" + row.data.title + "</strong><p>Pesquisador responsável: " + row.data.researcher + '</p><p>' + loc[0] + '</p>');
                     }
                   } catch (err) {
